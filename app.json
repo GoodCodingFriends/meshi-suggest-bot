@@ -1,0 +1,17 @@
+{
+  "name": "meshi-suggest-bot",
+  "repository": "https://github.com/acomagu/meshi-suggest-bot",
+  "env": {
+    "FOURSQUARE_CLIENT_ID": {},
+    "FOURSQUARE_CLIENT_SECRET": {},
+    "ENDPOINT_URI": {
+      "description": "The url heroku endpoint url. e.g. https://meshi-suggest-bot.heroku.com."
+    },
+    "SLACK_INCOMING_WEBHOOK_URL": {}
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/go"
+    }
+  ]
+}
