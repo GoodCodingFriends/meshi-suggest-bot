@@ -51,6 +51,7 @@ var foursquareClientID = os.Getenv("FOURSQUARE_CLIENT_ID")
 var foursquareClientSecret = os.Getenv("FOURSQUARE_CLIENT_SECRET")
 var endpointURI = os.Getenv("ENDPOINT_URI")
 var slackIncomingWebhookURL = os.Getenv("SLACK_INCOMING_WEBHOOK_URL")
+var port = os.Getenv("PORT")
 
 var code string
 var conf = &oauth2.Config{
@@ -75,7 +76,7 @@ func main() {
 		code = req.URL.Query().Get("code")
 	})
 
-	fmt.Println(http.ListenAndServe(":8080", nil))
+	fmt.Println(http.ListenAndServe(":"+port, nil))
 }
 
 func postToSlack(text string) {
