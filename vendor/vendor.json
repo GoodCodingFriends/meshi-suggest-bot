@@ -1,0 +1,103 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"checksumSHA1": "uw/28l80+m+fDMM8BAUy/lmATUw=",
+			"path": "github.com/acomagu/chatroom-go-v2/chatroom",
+			"revision": "340bb574a2564b747e7c57a74f60e0807cd6e388",
+			"revisionTime": "2017-08-19T11:46:21Z"
+		},
+		{
+			"checksumSHA1": "0xIBiVOmW6JxXyxOZsBTtHF1Jxw=",
+			"path": "github.com/erikstmartin/go-testdb",
+			"revision": "8d10e4a1bae52cd8b81ffdec3445890d6dccab3d",
+			"revisionTime": "2016-02-19T21:45:06Z"
+		},
+		{
+			"checksumSHA1": "oigwHdtDGtv0Essm53eYMVr/b34=",
+			"path": "github.com/kellydunn/golang-geo",
+			"revision": "6f16b0ccf2a6ebd1a234daacfb6199510fbd0db4",
+			"revisionTime": "2016-02-15T19:45:13Z"
+		},
+		{
+			"checksumSHA1": "p+Bj1OSkp9/zxr6oZGzBAvYsdm0=",
+			"path": "github.com/kylelemons/go-gypsy/yaml",
+			"revision": "08cad365cd28a7fba23bb1e57aa43c5e18ad8bb8",
+			"revisionTime": "2016-09-05T02:00:20Z"
+		},
+		{
+			"checksumSHA1": "+hQAF7/X0rDg/sXFbUkoUHfLsx8=",
+			"path": "github.com/lib/pq",
+			"revision": "017e4c14d80628353eaee677a1aeffe47a10c0dc",
+			"revisionTime": "2017-10-11T13:52:33Z"
+		},
+		{
+			"checksumSHA1": "ATnwV0POluBNQEMjPdylodz0oK0=",
+			"path": "github.com/lib/pq/oid",
+			"revision": "017e4c14d80628353eaee677a1aeffe47a10c0dc",
+			"revisionTime": "2017-10-11T13:52:33Z"
+		},
+		{
+			"checksumSHA1": "2TJV/f15/49inUOLH5hJK+nkRNw=",
+			"path": "github.com/ziutek/mymysql/godrv",
+			"revision": "1d19cbf98d83564cc561192ae7d7183d795f7ac7",
+			"revisionTime": "2017-03-28T15:36:53Z"
+		},
+		{
+			"checksumSHA1": "oRXWHvweXZQ99jtuUtYVvKv8oI0=",
+			"path": "github.com/ziutek/mymysql/mysql",
+			"revision": "1d19cbf98d83564cc561192ae7d7183d795f7ac7",
+			"revisionTime": "2017-03-28T15:36:53Z"
+		},
+		{
+			"checksumSHA1": "jV9XesO+NZ2UqmMw3zoUwM4UmAE=",
+			"path": "github.com/ziutek/mymysql/native",
+			"revision": "1d19cbf98d83564cc561192ae7d7183d795f7ac7",
+			"revisionTime": "2017-03-28T15:36:53Z"
+		},
+		{
+			"checksumSHA1": "Y+HGqEkYM15ir+J93MEaHdyFy0c=",
+			"path": "golang.org/x/net/context",
+			"revision": "c9b681d35165f1995d6f3034e61f8761d4b90c99",
+			"revisionTime": "2017-05-10T00:04:54Z"
+		},
+		{
+			"checksumSHA1": "WHc3uByvGaMcnSoI21fhzYgbOgg=",
+			"path": "golang.org/x/net/context/ctxhttp",
+			"revision": "c9b681d35165f1995d6f3034e61f8761d4b90c99",
+			"revisionTime": "2017-05-10T00:04:54Z"
+		},
+		{
+			"checksumSHA1": "SjCoL7KD7qBmgSuqGTCAuUhigDk=",
+			"path": "golang.org/x/oauth2",
+			"revision": "ad516a297a9f2a74ecc244861b298c94bdd28b9d",
+			"revisionTime": "2017-05-10T21:51:24Z"
+		},
+		{
+			"checksumSHA1": "+XdQRp6JewOKrEpf6le3+HuH1Mg=",
+			"path": "golang.org/x/oauth2/foursquare",
+			"revision": "ad516a297a9f2a74ecc244861b298c94bdd28b9d",
+			"revisionTime": "2017-05-10T21:51:24Z"
+		},
+		{
+			"checksumSHA1": "Umx4Fmn5FyXJyUVzKWhnQdvFNkc=",
+			"path": "golang.org/x/oauth2/internal",
+			"revision": "ad516a297a9f2a74ecc244861b298c94bdd28b9d",
+			"revisionTime": "2017-05-10T21:51:24Z"
+		},
+		{
+			"checksumSHA1": "4jV2Qgx2Ywg2IBy/nV+x7DmL7Ug=",
+			"path": "googlemaps.github.io/maps",
+			"revision": "3f9aa4e0af699da014cb9b3737ad4e7a2f3386ff",
+			"revisionTime": "2017-10-10T23:59:43Z"
+		},
+		{
+			"checksumSHA1": "T47E4DD/+UCGq0rAc70yGCEWJ0w=",
+			"path": "googlemaps.github.io/maps/internal",
+			"revision": "3f9aa4e0af699da014cb9b3737ad4e7a2f3386ff",
+			"revisionTime": "2017-10-10T23:59:43Z"
+		}
+	],
+	"rootPath": "github.com/acomagu/meshi-suggest-bot"
+}
