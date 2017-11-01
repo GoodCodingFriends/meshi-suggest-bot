@@ -57,6 +57,12 @@
 			"revisionTime": "2017-10-11T13:52:33Z"
 		},
 		{
+			"checksumSHA1": "rJab1YdNhQooDiBWNnt7TLWPyBU=",
+			"path": "github.com/pkg/errors",
+			"revision": "c605e284fe17294bda444b34710735b29d1a9d90",
+			"revisionTime": "2017-05-05T04:36:39Z"
+		},
+		{
 			"checksumSHA1": "2TJV/f15/49inUOLH5hJK+nkRNw=",
 			"path": "github.com/ziutek/mymysql/godrv",
 			"revision": "1d19cbf98d83564cc561192ae7d7183d795f7ac7",
@@ -103,6 +109,12 @@
 			"path": "golang.org/x/oauth2/internal",
 			"revision": "ad516a297a9f2a74ecc244861b298c94bdd28b9d",
 			"revisionTime": "2017-05-10T21:51:24Z"
+		},
+		{
+			"checksumSHA1": "S0DP7Pn7sZUmXc55IzZnNvERu6s=",
+			"path": "golang.org/x/sync/errgroup",
+			"revision": "8e0aa688b654ef28caa72506fa5ec8dba9fc7690",
+			"revisionTime": "2017-07-19T03:38:01Z"
 		},
 		{
 			"checksumSHA1": "4o2JkeR2LyUfZ7BQIzHUejyqKno=",
