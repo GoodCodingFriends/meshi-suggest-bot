@@ -3,7 +3,9 @@ package main
 import (
 	"github.com/acomagu/chatroom-go-v2/chatroom"
 	"github.com/garyburd/redigo/redis"
+	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
+	"log"
 	"regexp"
 )
 
@@ -51,7 +53,12 @@ func (t MeshiTopic) talk(room chatroom.Room) chatroom.DidTalk {
 
 	locName := matches[1]
 
-	res := sel(t.rds, locName)
+	res, err := sel(t.rds, locName)
+	if err != nil {
+		log.Fatalln(errors.Wrap(err, "could not create response"))
+		return true
+	}
+
 	postToSlack(res)
 	return true
 }

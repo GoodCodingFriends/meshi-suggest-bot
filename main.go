@@ -7,16 +7,18 @@ import (
 	"github.com/acomagu/chatroom-go-v2/chatroom"
 	"github.com/garyburd/redigo/redis"
 	"github.com/kellydunn/golang-geo"
+	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/foursquare"
+	"golang.org/x/sync/errgroup"
 	"googlemaps.github.io/maps"
 	"io/ioutil"
+	"log"
 	"math/rand"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -87,7 +89,8 @@ func main() {
 
 	rds, err := redis.DialURL(os.Getenv("REDIS_URL"))
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalln(errors.Wrap(err, "fatal to connect to Redis"))
+		return
 	}
 	defer rds.Close()
 
@@ -96,12 +99,12 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			fmt.Println(err)
+			log.Fatalln(errors.Wrap(err, "fatal to read from reqeust body"))
 			return
 		}
 		username, ok, err := getSentUserName(body)
 		if err != nil || !ok {
-			fmt.Printf("could not get username from response: %s\n", err)
+			log.Fatalln(errors.Wrap(err, "could not get username from response"))
 			return
 		}
 		if username == "slackbot" {
@@ -111,12 +114,13 @@ func main() {
 		fmt.Printf("-> %s\n", getReceivedMessage(body))
 		cr.In <- getReceivedMessage(body)
 	})
+
 	http.HandleFunc("/authenticated", func(w http.ResponseWriter, req *http.Request) {
 		code := req.URL.Query().Get("code")
 
 		tok, err := conf.Exchange(oauth2.NoContext, code)
 		if err != nil {
-			fmt.Println(err)
+			log.Fatalln(errors.Wrap(err, "fatal to get access token"))
 			return
 		}
 
@@ -124,14 +128,14 @@ func main() {
 
 		resp, err := client.Get(fmt.Sprintf("https://api.foursquare.com/v2/users/self?oauth_token=%s&v=20170801", tok.AccessToken))
 		if err != nil {
-			fmt.Println(err)
+			log.Fatalln(errors.Wrap(err, "fatal to get user info"))
 			return
 		}
 
 		r := UserResp{}
 		err = json.NewDecoder(resp.Body).Decode(&r)
 		if err != nil {
-			fmt.Println(err)
+			log.Fatalln(errors.Wrap(err, "fatal to decode user info as JSON"))
 			return
 		}
 
@@ -161,7 +165,7 @@ func fetchUsersAndTokens(rds redis.Conn) ([]oauth2.Token, []User, error) {
 		var id, accessToken, firstName, lastName string
 		values, err = redis.Scan(values, &id, &accessToken, &firstName, &lastName)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, errors.Wrap(err, "could not scan values from Redis")
 		}
 
 		token := oauth2.Token{
@@ -193,7 +197,7 @@ func storeUsersAndTokens(rds redis.Conn, token oauth2.Token, user User) error {
 		"lastName", user.LastName,
 	)
 	s.Send("LPUSH", "userAndTokens", user.ID)
-	return s.err
+	return errors.Wrap(s.err, "could not execute Redis commands correctly")
 }
 
 type errRedisSender struct {
@@ -211,7 +215,7 @@ func (s *errRedisSender) Send(cmd string, args ...interface{}) {
 func postToSlack(text string) {
 	jsonStr, err := json.Marshal(Slack{Text: text, Username: "MESHI", IconEmoji: ":just_do_it:"})
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalln(errors.Wrap(err, "could not marshal Slack message struct as JSON"))
 	}
 	http.PostForm(slackIncomingWebhookURL, url.Values{"payload": {string(jsonStr)}})
 }
@@ -219,7 +223,7 @@ func postToSlack(text string) {
 func getReceivedMessage(body []byte) string {
 	parsed, err := url.ParseQuery(string(body))
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalln(errors.Wrap(err, "could not parse URL Query"))
 	}
 	return parsed["text"][0]
 }
@@ -227,7 +231,7 @@ func getReceivedMessage(body []byte) string {
 func getSentUserName(body []byte) (string, bool, error) {
 	parsed, err := url.ParseQuery(string(body))
 	if err != nil {
-		return "", false, err
+		return "", false, errors.Wrap(err, "could not parse URL Query")
 	}
 	username, ok := parsed["user_name"]
 	if !ok || len(username) == 0 {
@@ -236,34 +240,36 @@ func getSentUserName(body []byte) (string, bool, error) {
 	return username[0], true, nil
 }
 
-func sel(rds redis.Conn, place string) string {
+func sel(rds redis.Conn, place string) (string, error) {
 	tokens, users, err := fetchUsersAndTokens(rds)
 	if err != nil {
-		fmt.Println(err)
+		return "", errors.Wrap(err, "could not fetch data from Redis")
+	}
+	if len(tokens) == 0 || len(users) == 0 {
+		return "だれもいません。", nil
 	}
 
-	wg := &sync.WaitGroup{}
+	g := errgroup.Group{}
 	candChan := make(chan Cand)
 	for i, token := range tokens {
-		user := users[i]
-		wg.Add(1)
+		token, user := token, users[i]
 
-		go func(token oauth2.Token, user User) {
+		g.Go(func() error {
 			fclient := conf.Client(oauth2.NoContext, &token)
 			fresp, err := fclient.Get(fmt.Sprintf("https://api.foursquare.com/v2/users/self/venuehistory?oauth_token=%s&v=20170801", token.AccessToken))
 			if err != nil {
-				fmt.Println(err)
+				return errors.Wrap(err, "could not get venuehistory of Foursquare")
 			}
 
 			r := Resp{}
 			err = json.NewDecoder(fresp.Body).Decode(&r)
 			if err != nil {
-				fmt.Println(err)
+				return errors.Wrap(err, "could not decode venuehistory body as JSON")
 			}
 
 			mclient, err := maps.NewClient(maps.WithAPIKey("AIzaSyCpAcJuShwvg9XhepXzvork-erXf5fcT1w"))
 			if err != nil {
-				fmt.Println(err)
+				return errors.Wrap(err, "could not create Google Maps client")
 			}
 
 			p := place
@@ -273,7 +279,7 @@ func sel(rds redis.Conn, place string) string {
 
 			mresp, err := mclient.TextSearch(context.Background(), &maps.TextSearchRequest{Query: p})
 			if err != nil {
-				fmt.Println(err)
+				return errors.Wrap(err, "could not search on Google Maps")
 			}
 
 			loc1 := mresp.Results[0].Geometry.Location
@@ -289,21 +295,25 @@ func sel(rds redis.Conn, place string) string {
 					User:  user,
 				}
 			}
-			wg.Done()
-		}(token, user)
+
+			return nil
+		})
 	}
 
 	go func() {
-		wg.Wait()
+		g.Wait()
 		close(candChan)
 	}()
 
+	if err := g.Wait(); err != nil {
+		return "", err
+	}
+
 	ans, err := chooseChan(candChan)
 	if err != nil {
-		fmt.Println(err)
-		return ""
+		return "", errors.Wrap(err, "could not select one from candidates")
 	}
-	return fmt.Sprintf("%s (by %s %s)", ans.Venue.Name, ans.User.FirstName, ans.User.LastName)
+	return fmt.Sprintf("%s (by %s %s)", ans.Venue.Name, ans.User.FirstName, ans.User.LastName), nil
 }
 
 func chooseChan(ch <-chan Cand) (*Cand, error) {
