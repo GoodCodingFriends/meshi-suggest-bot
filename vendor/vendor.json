@@ -15,6 +15,18 @@
 			"revisionTime": "2016-02-19T21:45:06Z"
 		},
 		{
+			"checksumSHA1": "2UmMbNHc8FBr98mJFN1k8ISOIHk=",
+			"path": "github.com/garyburd/redigo/internal",
+			"revision": "06066d2f143c573c5cc10a91893dbe92103f4e92",
+			"revisionTime": "2017-10-30T18:08:28Z"
+		},
+		{
+			"checksumSHA1": "8qM6LDoSxDC+3Y4+lewd1xWZE8w=",
+			"path": "github.com/garyburd/redigo/redis",
+			"revision": "06066d2f143c573c5cc10a91893dbe92103f4e92",
+			"revisionTime": "2017-10-30T18:08:28Z"
+		},
+		{
 			"checksumSHA1": "kBeNcaKk56FguvPSUCEaH6AxpRc=",
 			"path": "github.com/golang/protobuf/proto",
 			"revision": "b50ceb1fa9818fa4d78b016c2d4ae025593a7ce3",
