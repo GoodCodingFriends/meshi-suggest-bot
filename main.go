@@ -89,7 +89,7 @@ func main() {
 
 	rds, err := redis.DialURL(os.Getenv("REDIS_URL"))
 	if err != nil {
-		log.Fatalln(errors.Wrap(err, "fatal to connect to Redis"))
+		log.Print(errors.Wrap(err, "fatal to connect to Redis"))
 		return
 	}
 	defer rds.Close()
@@ -99,12 +99,12 @@ func main() {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
-			log.Fatalln(errors.Wrap(err, "fatal to read from reqeust body"))
+			log.Print(errors.Wrap(err, "fatal to read from reqeust body"))
 			return
 		}
 		username, ok, err := getSentUserName(body)
 		if err != nil || !ok {
-			log.Fatalln(errors.Wrap(err, "could not get username from response"))
+			log.Print(errors.Wrap(err, "could not get username from response"))
 			return
 		}
 		if username == "slackbot" {
@@ -120,7 +120,7 @@ func main() {
 
 		tok, err := conf.Exchange(oauth2.NoContext, code)
 		if err != nil {
-			log.Fatalln(errors.Wrap(err, "fatal to get access token"))
+			log.Print(errors.Wrap(err, "fatal to get access token"))
 			return
 		}
 
@@ -128,20 +128,20 @@ func main() {
 
 		resp, err := client.Get(fmt.Sprintf("https://api.foursquare.com/v2/users/self?oauth_token=%s&v=20170801", tok.AccessToken))
 		if err != nil {
-			log.Fatalln(errors.Wrap(err, "fatal to get user info"))
+			log.Print(errors.Wrap(err, "fatal to get user info"))
 			return
 		}
 
 		r := UserResp{}
 		err = json.NewDecoder(resp.Body).Decode(&r)
 		if err != nil {
-			log.Fatalln(errors.Wrap(err, "fatal to decode user info as JSON"))
+			log.Print(errors.Wrap(err, "fatal to decode user info as JSON"))
 			return
 		}
 
 		err = storeUsersAndTokens(rds, *tok, r.Response.User)
 		if err != nil {
-			log.Fatalln(errors.Wrap(err, "could not store users and tokens to Redis"))
+			log.Print(errors.Wrap(err, "could not store users and tokens to Redis"))
 			return
 		}
 
@@ -221,20 +221,20 @@ func postToSlack(text string) {
 
 	jsonStr, err := json.Marshal(Slack{Text: text, Username: "MESHI", IconEmoji: ":just_do_it:"})
 	if err != nil {
-		log.Fatalln(errors.Wrap(err, "could not marshal Slack message struct as JSON"))
+		log.Print(errors.Wrap(err, "could not marshal Slack message struct as JSON"))
 		return
 	}
 
 	_, err = http.PostForm(slackIncomingWebhookURL, url.Values{"payload": {string(jsonStr)}})
 	if err != nil {
-		log.Fatalln(errors.Wrap(err, "could not send message"))
+		log.Print(errors.Wrap(err, "could not send message"))
 	}
 }
 
 func getReceivedMessage(body []byte) string {
 	parsed, err := url.ParseQuery(string(body))
 	if err != nil {
-		log.Fatalln(errors.Wrap(err, "could not parse URL Query"))
+		log.Print(errors.Wrap(err, "could not parse URL Query"))
 	}
 	return parsed["text"][0]
 }
