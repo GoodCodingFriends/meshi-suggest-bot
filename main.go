@@ -139,7 +139,11 @@ func main() {
 			return
 		}
 
-		storeUsersAndTokens(rds, *tok, r.Response.User)
+		err = storeUsersAndTokens(rds, *tok, r.Response.User)
+		if err != nil {
+			log.Fatalln(errors.Wrap(err, "could not store users and tokens to Redis"))
+			return
+		}
 
 		w.Write([]byte("Close this window."))
 	})
@@ -213,11 +217,18 @@ func (s *errRedisSender) Send(cmd string, args ...interface{}) {
 }
 
 func postToSlack(text string) {
+	fmt.Printf("<- %s\n", text)
+
 	jsonStr, err := json.Marshal(Slack{Text: text, Username: "MESHI", IconEmoji: ":just_do_it:"})
 	if err != nil {
 		log.Fatalln(errors.Wrap(err, "could not marshal Slack message struct as JSON"))
+		return
 	}
-	http.PostForm(slackIncomingWebhookURL, url.Values{"payload": {string(jsonStr)}})
+
+	_, err = http.PostForm(slackIncomingWebhookURL, url.Values{"payload": {string(jsonStr)}})
+	if err != nil {
+		log.Fatalln(errors.Wrap(err, "could not send message"))
+	}
 }
 
 func getReceivedMessage(body []byte) string {
