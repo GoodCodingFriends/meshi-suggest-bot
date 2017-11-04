@@ -1,17 +1,13 @@
 package main
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/acomagu/chatroom-go-v2/chatroom"
 	"github.com/garyburd/redigo/redis"
-	"github.com/kellydunn/golang-geo"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/foursquare"
-	"golang.org/x/sync/errgroup"
-	"googlemaps.github.io/maps"
 	"io/ioutil"
 	"log"
 	"math/rand"
@@ -43,12 +39,14 @@ type Venue struct {
 	Categories []Category `json:"categories"`
 }
 
+type VenueItem struct {
+	Venue Venue `json:"venue"`
+}
+
 type Resp struct {
 	Response struct {
 		Venues struct {
-			Items []struct {
-				Venue Venue `json:"venue"`
-			} `json:"items"`
+			Items []VenueItem `json:"items"`
 		} `json:"venues"`
 	} `json:"response"`
 }
@@ -94,7 +92,12 @@ func main() {
 	}
 	defer rds.Close()
 
-	cr := chatroom.New(topics(rds))
+	topics, err := topics(rds)
+	if err != nil {
+		log.Print(errors.Wrap(err, "could not initialize topics"))
+		return
+	}
+	cr := chatroom.New(topics)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		body, err := ioutil.ReadAll(r.Body)
@@ -139,7 +142,10 @@ func main() {
 			return
 		}
 
-		err = storeUsersAndTokens(rds, *tok, r.Response.User)
+		s := RedisUserAndTokenStore{
+			rds: rds,
+		}
+		err = s.storeUsersAndTokens(*tok, r.Response.User)
 		if err != nil {
 			log.Print(errors.Wrap(err, "could not store users and tokens to Redis"))
 			return
@@ -149,71 +155,6 @@ func main() {
 	})
 
 	fmt.Println(http.ListenAndServe(":"+port, nil))
-}
-
-func fetchUsersAndTokens(rds redis.Conn) ([]oauth2.Token, []User, error) {
-	values, err := redis.Values(rds.Do(
-		"SORT", "userAndTokens",
-		"GET", "userAndToken:*->id",
-		"GET", "userAndToken:*->token",
-		"GET", "userAndToken:*->firstName",
-		"GET", "userAndToken:*->lastName",
-	))
-	if err != nil {
-		return nil, nil, err
-	}
-
-	tokens := []oauth2.Token{}
-	users := []User{}
-	for len(values) > 0 {
-		var id, accessToken, firstName, lastName string
-		values, err = redis.Scan(values, &id, &accessToken, &firstName, &lastName)
-		if err != nil {
-			return nil, nil, errors.Wrap(err, "could not scan values from Redis")
-		}
-
-		token := oauth2.Token{
-			AccessToken: accessToken,
-		}
-		tokens = append(tokens, token)
-
-		user := User{
-			ID:        id,
-			FirstName: firstName,
-			LastName:  lastName,
-		}
-		users = append(users, user)
-	}
-
-	return tokens, users, nil
-}
-
-func storeUsersAndTokens(rds redis.Conn, token oauth2.Token, user User) error {
-	s := errRedisSender{
-		rds: rds,
-	}
-
-	s.Send(
-		"HMSET", fmt.Sprintf("userAndToken:%s", user.ID),
-		"id", user.ID,
-		"token", token.AccessToken,
-		"firstName", user.FirstName,
-		"lastName", user.LastName,
-	)
-	s.Send("LPUSH", "userAndTokens", user.ID)
-	return errors.Wrap(s.err, "could not execute Redis commands correctly")
-}
-
-type errRedisSender struct {
-	rds redis.Conn
-	err error
-}
-
-func (s *errRedisSender) Send(cmd string, args ...interface{}) {
-	if s.err != nil {
-		return
-	}
-	s.rds.Send(cmd, args...)
 }
 
 func postToSlack(text string) {
@@ -249,82 +190,6 @@ func getSentUserName(body []byte) (string, bool, error) {
 		return "", false, nil
 	}
 	return username[0], true, nil
-}
-
-func sel(rds redis.Conn, place string) (string, error) {
-	tokens, users, err := fetchUsersAndTokens(rds)
-	if err != nil {
-		return "", errors.Wrap(err, "could not fetch data from Redis")
-	}
-	if len(tokens) == 0 || len(users) == 0 {
-		return "だれもいません。", nil
-	}
-
-	g := errgroup.Group{}
-	candChan := make(chan Cand)
-	for i, token := range tokens {
-		token, user := token, users[i]
-
-		g.Go(func() error {
-			fclient := conf.Client(oauth2.NoContext, &token)
-			fresp, err := fclient.Get(fmt.Sprintf("https://api.foursquare.com/v2/users/self/venuehistory?oauth_token=%s&v=20170801", token.AccessToken))
-			if err != nil {
-				return errors.Wrap(err, "could not get venuehistory of Foursquare")
-			}
-
-			r := Resp{}
-			err = json.NewDecoder(fresp.Body).Decode(&r)
-			if err != nil {
-				return errors.Wrap(err, "could not decode venuehistory body as JSON")
-			}
-
-			mclient, err := maps.NewClient(maps.WithAPIKey("AIzaSyCpAcJuShwvg9XhepXzvork-erXf5fcT1w"))
-			if err != nil {
-				return errors.Wrap(err, "could not create Google Maps client")
-			}
-
-			p := place
-			if p == "" {
-				p = "会津若松"
-			}
-
-			mresp, err := mclient.TextSearch(context.Background(), &maps.TextSearchRequest{Query: p})
-			if err != nil {
-				return errors.Wrap(err, "could not search on Google Maps")
-			}
-
-			loc1 := mresp.Results[0].Geometry.Location
-			for _, item := range r.Response.Venues.Items {
-				loc2 := item.Venue.Location
-				radius := geo.NewPoint(loc1.Lat, loc1.Lng).GreatCircleDistance(geo.NewPoint(loc2.Lat, loc2.Lng))
-				if !isRestaurant(item.Venue) || radius > 40 {
-					continue
-				}
-
-				candChan <- Cand{
-					Venue: item.Venue,
-					User:  user,
-				}
-			}
-
-			return nil
-		})
-	}
-
-	go func() {
-		g.Wait()
-		close(candChan)
-	}()
-
-	if err := g.Wait(); err != nil {
-		return "", err
-	}
-
-	ans, err := chooseChan(candChan)
-	if err != nil {
-		return "", errors.Wrap(err, "could not select one from candidates")
-	}
-	return fmt.Sprintf("%s (by %s %s)", ans.Venue.Name, ans.User.FirstName, ans.User.LastName), nil
 }
 
 func chooseChan(ch <-chan Cand) (*Cand, error) {
