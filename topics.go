@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"time"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -31,25 +32,21 @@ type UserAndTokenStore interface {
 	storeUsersAndTokens(oauth2.Token, User) error
 }
 
-func topics(rds redis.Conn) ([]chatroom.Topic, error) {
-	getCodeTopic := newGetCodeTopic(rds).talk
+func topics(addr string) ([]chatroom.Topic, error) {
+	getCodeTopic := newGetCodeTopic().talk
 
 	mc, err := maps.NewClient(maps.WithAPIKey("AIzaSyCpAcJuShwvg9XhepXzvork-erXf5fcT1w"))
 	if err != nil {
 		return nil, errors.Wrap(err, "could not create Google Maps client")
 	}
-	meshiTopic := newMeshiTopic(rds, mc).talk
+	meshiTopic := newMeshiTopic(addr, mc).talk
 	return []chatroom.Topic{getCodeTopic, meshiTopic}, nil
 }
 
-type GetCodeTopic struct {
-	rds redis.Conn
-}
+type GetCodeTopic struct {}
 
-func newGetCodeTopic(rds redis.Conn) GetCodeTopic {
-	return GetCodeTopic{
-		rds: rds,
-	}
+func newGetCodeTopic() GetCodeTopic {
+	return GetCodeTopic{}
 }
 
 func (GetCodeTopic) talk(room chatroom.Room) chatroom.DidTalk {
@@ -69,10 +66,8 @@ type MeshiTopic struct {
 	FoursquareResponseLog    *os.File
 }
 
-func newMeshiTopic(rds redis.Conn, mc MapsClientLike) MeshiTopic {
-	s := RedisUserAndTokenStore{
-		rds: rds,
-	}
+func newMeshiTopic(addr string, mc MapsClientLike) MeshiTopic {
+	s := newRedisUserAndTokenStore(addr)
 	return MeshiTopic{
 		UserAndTokenStore: s,
 		MapClient:         mc,
@@ -270,11 +265,31 @@ func decodeBody(resp *http.Response, out interface{}, f *os.File) error {
 }
 
 type RedisUserAndTokenStore struct {
-	rds redis.Conn
+	pool *redis.Pool
+}
+
+func newRedisUserAndTokenStore(addr string) *RedisUserAndTokenStore {
+	pool := &redis.Pool{
+		MaxIdle: 3,
+		IdleTimeout: 240 * time.Second,
+		Dial: func () (redis.Conn, error) {
+			return redis.Dial("tcp", addr)
+		},
+		TestOnBorrow: func(c redis.Conn, t time.Time) error {
+			_, err := c.Do("PING")
+			return err
+		},
+	}
+	return &RedisUserAndTokenStore{
+		pool: pool,
+	}
 }
 
 func (s RedisUserAndTokenStore) fetchUsersAndTokens() ([]oauth2.Token, []User, error) {
-	values, err := redis.Values(s.rds.Do(
+	rds := s.pool.Get()
+	defer s.pool.Close()
+
+	values, err := redis.Values(rds.Do(
 		"SORT", "userAndTokens",
 		"GET", "userAndToken:*->id",
 		"GET", "userAndToken:*->token",
@@ -311,8 +326,11 @@ func (s RedisUserAndTokenStore) fetchUsersAndTokens() ([]oauth2.Token, []User, e
 }
 
 func (s RedisUserAndTokenStore) storeUsersAndTokens(token oauth2.Token, user User) error {
+	rds := s.pool.Get()
+	defer s.pool.Close()
+
 	sender := errRedisSender{
-		rds: s.rds,
+		rds: rds,
 	}
 
 	sender.Send(

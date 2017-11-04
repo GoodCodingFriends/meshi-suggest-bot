@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/acomagu/chatroom-go-v2/chatroom"
-	"github.com/garyburd/redigo/redis"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/foursquare"
@@ -74,6 +73,7 @@ var endpointURI = os.Getenv("ENDPOINT_URI")
 var slackIncomingWebhookURL = os.Getenv("SLACK_INCOMING_WEBHOOK_URL")
 var port = os.Getenv("PORT")
 var slackBotAPIToken = os.Getenv("SLACK_BOT_API_TOKEN")
+var redisURL = os.Getenv("REDIS_URL")
 
 var conf = &oauth2.Config{
 	ClientID:     foursquareClientID,
@@ -85,14 +85,7 @@ var conf = &oauth2.Config{
 func main() {
 	rand.Seed(time.Now().Unix())
 
-	rds, err := redis.DialURL(os.Getenv("REDIS_URL"))
-	if err != nil {
-		log.Print(errors.Wrap(err, "fatal to connect to Redis"))
-		return
-	}
-	defer rds.Close()
-
-	topics, err := topics(rds)
+	topics, err := topics(redisURL)
 	if err != nil {
 		log.Print(errors.Wrap(err, "could not initialize topics"))
 		return
@@ -142,9 +135,7 @@ func main() {
 			return
 		}
 
-		s := RedisUserAndTokenStore{
-			rds: rds,
-		}
+		s := newRedisUserAndTokenStore(redisURL)
 		err = s.storeUsersAndTokens(*tok, r.Response.User)
 		if err != nil {
 			log.Print(errors.Wrap(err, "could not store users and tokens to Redis"))
