@@ -273,7 +273,7 @@ func newRedisUserAndTokenStore(addr string) *RedisUserAndTokenStore {
 		MaxIdle: 3,
 		IdleTimeout: 240 * time.Second,
 		Dial: func () (redis.Conn, error) {
-			return redis.Dial("tcp", addr)
+			return redis.DialURL(addr)
 		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
 			_, err := c.Do("PING")
