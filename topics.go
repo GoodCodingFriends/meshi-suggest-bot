@@ -179,7 +179,7 @@ func (t *MeshiTopic) fetchRestaurantVenuesForUser(fc *FoursquareClient, place st
 
 			loc2 := item.Venue.Location
 			radius := geo.NewPoint(loc1.Lat, loc1.Lng).GreatCircleDistance(geo.NewPoint(loc2.Lat, loc2.Lng))
-			if !isRestaurant(item.Venue) || radius > 20 {
+			if !isRestaurant(item.Venue) || radius > 10 {
 				return
 			}
 
