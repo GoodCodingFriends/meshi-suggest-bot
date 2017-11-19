@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"time"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +11,7 @@ import (
 	"os"
 	"regexp"
 	"sync"
+	"time"
 
 	"github.com/acomagu/chatroom-go-v2/chatroom"
 	"github.com/garyburd/redigo/redis"
@@ -43,7 +43,7 @@ func topics(addr string) ([]chatroom.Topic, error) {
 	return []chatroom.Topic{getCodeTopic, meshiTopic}, nil
 }
 
-type GetCodeTopic struct {}
+type GetCodeTopic struct{}
 
 func newGetCodeTopic() GetCodeTopic {
 	return GetCodeTopic{}
@@ -270,9 +270,9 @@ type RedisUserAndTokenStore struct {
 
 func newRedisUserAndTokenStore(addr string) *RedisUserAndTokenStore {
 	pool := &redis.Pool{
-		MaxIdle: 3,
+		MaxIdle:     3,
 		IdleTimeout: 240 * time.Second,
-		Dial: func () (redis.Conn, error) {
+		Dial: func() (redis.Conn, error) {
 			return redis.DialURL(addr)
 		},
 		TestOnBorrow: func(c redis.Conn, t time.Time) error {
