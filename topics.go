@@ -287,7 +287,7 @@ func newRedisUserAndTokenStore(addr string) *RedisUserAndTokenStore {
 
 func (s RedisUserAndTokenStore) fetchUsersAndTokens() ([]oauth2.Token, []User, error) {
 	rds := s.pool.Get()
-	defer s.pool.Close()
+	defer rds.Close()
 
 	values, err := redis.Values(rds.Do(
 		"SORT", "userAndTokens",
@@ -327,7 +327,7 @@ func (s RedisUserAndTokenStore) fetchUsersAndTokens() ([]oauth2.Token, []User, e
 
 func (s RedisUserAndTokenStore) storeUsersAndTokens(token oauth2.Token, user User) error {
 	rds := s.pool.Get()
-	defer s.pool.Close()
+	defer rds.Close()
 
 	sender := errRedisSender{
 		rds: rds,
