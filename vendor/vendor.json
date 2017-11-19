@@ -3,6 +3,12 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "7aP2JUkeJXKhnNWhrVD07Dq419s=",
+			"path": "github.com/GoodCodingFriends/meshi-suggest-bot",
+			"revision": "2b341009d001c7eea6787b67db77301d6e1ef24a",
+			"revisionTime": "2017-11-19T00:37:07Z"
+		},
+		{
 			"checksumSHA1": "uw/28l80+m+fDMM8BAUy/lmATUw=",
 			"path": "github.com/acomagu/chatroom-go-v2/chatroom",
 			"revision": "340bb574a2564b747e7c57a74f60e0807cd6e388",
@@ -171,5 +177,5 @@
 			"revisionTime": "2017-10-10T23:59:43Z"
 		}
 	],
-	"rootPath": "github.com/acomagu/meshi-suggest-bot"
+	"rootPath": "github.com/GoodCodingFriends/meshi-suggest-bot"
 }
